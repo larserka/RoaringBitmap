@@ -42,6 +42,7 @@
     </license>
   </licenses>
   <properties>
+  	<checkstyle.skip>true</checkstyle.skip>
     <checkstyle.configLocation>${basedir}/style/roaring_google_checks.xml</checkstyle.configLocation>
   </properties>
   <dependencies>

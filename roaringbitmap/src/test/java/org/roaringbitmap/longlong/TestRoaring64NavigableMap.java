@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -190,7 +191,61 @@ public class TestRoaring64NavigableMap {
     Assert.assertEquals(1, map.rankLong(Integer.MAX_VALUE + 1L));
     Assert.assertEquals(1, map.rankLong(Long.MAX_VALUE));
   }
+  
+  @Test
+	public void testAndNotWithPartiallyOverlappingLargeRange() {
+	  	
+	  	long max = 100*1000*1000*1000;
+	  	long numbers = 1000L;
+	  
+		Roaring64NavigableMap map = new Roaring64NavigableMap();
 
+		// Add some random numbers
+		long l=0;
+		while(l<numbers) {
+			long x = (long)(Math.random()*max);
+			if(!map.contains(x)) {
+				map.add(x);
+				l++;
+			}
+		}
+		
+		long cardinality = map.getLongCardinality();
+		// Sanity check
+		Assert.assertEquals(numbers, cardinality);
+		
+		// Collect all map values.
+		Iterator<Long> iter = map.iterator();
+		List<Long> longValues = new ArrayList<>();
+		while(iter.hasNext()) {
+			longValues.add(iter.next());
+		}
+		
+		// Sanity check
+		Assert.assertEquals(cardinality, longValues.size());	
+		
+		// Create a an overlapping larger range.
+		Collections.sort(longValues);
+		// Collect all longs part of the overlapping range.
+		List<Long> overlapping = longValues.subList(500, longValues.size());
+		List<Long> remaining = longValues.subList(0, 500);
+		Roaring64NavigableMap overlappingMap = new Roaring64NavigableMap();
+		overlappingMap.add(overlapping.get(0), (long)(max*1.5));
+				
+		// andNot/remove values
+		map.andNot(overlappingMap);
+		
+		Assert.assertEquals(500, map.getLongCardinality());
+		
+		for(Long r : remaining) {
+			Assert.assertEquals(true, map.contains(r));
+		}
+		for(Long r : overlapping) {
+			Assert.assertEquals(true, overlappingMap.contains(r));
+		}
+		
+	}
+  
   @Test
   public void testSimpleIntegers() {
     Roaring64NavigableMap map = newDefaultCtor();

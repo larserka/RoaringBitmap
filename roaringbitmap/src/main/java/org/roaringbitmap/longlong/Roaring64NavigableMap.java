@@ -3,8 +3,12 @@
  */
 package org.roaringbitmap.longlong;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -892,6 +896,33 @@ public class Roaring64NavigableMap implements Externalizable, LongBitmapDataProv
         } else if (lowBitmap2 instanceof MutableRoaringBitmap
             && lowBitmap1 instanceof MutableRoaringBitmap) {
           ((MutableRoaringBitmap) lowBitmap1).andNot((MutableRoaringBitmap) lowBitmap2);
+        } else if(lowBitmap2 instanceof RoaringBitmap  && lowBitmap1 instanceof MutableRoaringBitmap) {
+        	try {
+        		ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
+        		DataOutputStream dataOutputStream = new DataOutputStream(tmpOut);
+        		((RoaringBitmap)lowBitmap2).serialize(dataOutputStream);
+        		dataOutputStream.close();
+        		MutableRoaringBitmap tmp = new MutableRoaringBitmap();
+        		DataInputStream dataInputStream = new DataInputStream(new ByteArrayInputStream(tmpOut.toByteArray()));
+        		tmp.deserialize(dataInputStream);
+        		((MutableRoaringBitmap)lowBitmap1).andNot(tmp);
+        	} catch(Exception e) {
+        		throw new RuntimeException(e);
+        	}
+        } else if(lowBitmap2 instanceof MutableRoaringBitmap && lowBitmap1 instanceof RoaringBitmap) {
+        	try {
+        		ByteArrayOutputStream tmpOut = new ByteArrayOutputStream();
+        		DataOutputStream dataOutputStream = new DataOutputStream(tmpOut);
+        		((MutableRoaringBitmap)lowBitmap2).serialize(dataOutputStream);
+        		dataOutputStream.close();
+        		RoaringBitmap tmp = new RoaringBitmap();
+        		DataInputStream dataInputStream = new DataInputStream(new ByteArrayInputStream(tmpOut.toByteArray()));
+        		tmp.deserialize(dataInputStream);
+        		dataInputStream.close();
+        		((RoaringBitmap)lowBitmap1).andNot(tmp);
+        	} catch(Exception e) {
+        		throw new RuntimeException(e);
+        	}
         } else {
           throw new UnsupportedOperationException(
               ".and is not between " + this.getClass() + " and " + lowBitmap1.getClass());
